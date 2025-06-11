@@ -4,6 +4,7 @@ namespace Abdulbaset\Guardify\Traits;
 
 use Abdulbaset\Guardify\Models\Role;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\Config;
 
 /**
  * HasRoles Trait
@@ -30,8 +31,8 @@ trait HasRoles
     public function role()
     {
         return $this->belongsToMany(
-            \Abdulbaset\RolesPermissions\Models\Role::class,
-            config('roles.tables.role_user'),
+            Role::class,
+            Config::get('guardify.tables.role_user'),
             'user_id',
             'role_id'
         )->withTimestamps();
@@ -152,7 +153,7 @@ trait HasRoles
      */
     public function giveRole(string $roleSlug): void
     {
-        $role = \Abdulbaset\RolesPermissions\Models\Role::where('slug', $roleSlug)->first();
+        $role = Role::where('slug', $roleSlug)->first();
 
         if (!$role) {
             throw new \InvalidArgumentException("Role [{$roleSlug}] not found.");

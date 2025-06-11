@@ -4,6 +4,7 @@ namespace Abdulbaset\Guardify\Console\Commands;
 
 use Illuminate\Console\Command;
 use Abdulbaset\Guardify\Models\Permission;
+use Illuminate\Support\Facades\Config;
 
 /**
  * PermissionsSyncCommand
@@ -52,8 +53,8 @@ class PermissionsSyncCommand extends Command
         
         try {
             $allPermissions = [];
-            $roles = config('guardify.roles', []);
-            
+            $roles = Config::get('guardify.roles', []);
+
             if (empty($roles)) {
                 $this->warn('No roles found in configuration. Please check your config/guardify.php file.');
                 return 1;

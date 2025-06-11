@@ -4,6 +4,7 @@ namespace Abdulbaset\Guardify\Console\Commands;
 
 use Illuminate\Console\Command;
 use Abdulbaset\Guardify\Models\Role;
+use Illuminate\Support\Facades\Config;
 
 /**
  * RolesSyncCommand
@@ -44,8 +45,8 @@ class RolesSyncCommand extends Command
         $this->info('🔄 Syncing roles with database...');
         
         try {
-            $roles = config('guardify.roles', []);
-            
+            $roles = Config::get('guardify.roles', []);
+
             if (empty($roles)) {
                 $this->warn('No roles found in configuration. Please check your config/guardify.php file.');
                 return 1;

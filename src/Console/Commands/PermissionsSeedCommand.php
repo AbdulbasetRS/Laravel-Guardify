@@ -4,6 +4,7 @@ namespace Abdulbaset\Guardify\Console\Commands;
 
 use Illuminate\Console\Command;
 use Abdulbaset\Guardify\Models\Permission;
+use Illuminate\Support\Facades\Config;
 
 /**
  * PermissionsSeedCommand
@@ -102,7 +103,7 @@ class PermissionsSeedCommand extends Command
         $permissions = [];
 
         // Get permissions from roles configuration
-        $roles = config('guardify.roles', []);
+        $roles = Config::get('guardify.roles', []);
 
         foreach ($roles as $role) {
             if (isset($role['permissions']) && is_array($role['permissions'])) {

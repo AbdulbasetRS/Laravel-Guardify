@@ -4,6 +4,7 @@ namespace Abdulbaset\Guardify\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Facades\Config;
 
 /**
  * Permission Model
@@ -37,7 +38,7 @@ class Permission extends Model
     public function __construct(array $attributes = [])
     {
         parent::__construct($attributes);
-        $this->table = config('roles.tables.permissions');
+        $this->table = Config::get('guardify.tables.permissions');
     }
     /**
      * The attributes that are mass assignable.
@@ -83,7 +84,7 @@ class Permission extends Model
     {
         return $this->belongsToMany(
             Role::class,
-            config('roles.tables.permission_role'),
+            Config::get('guardify.tables.permission_role'),
             'permission_id',
             'role_id'
         );

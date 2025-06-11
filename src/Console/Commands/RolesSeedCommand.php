@@ -5,6 +5,7 @@ namespace Abdulbaset\Guardify\Console\Commands;
 use Illuminate\Console\Command;
 use Abdulbaset\Guardify\Models\Role;
 use Abdulbaset\Guardify\Models\Permission;
+use Illuminate\Support\Facades\Config;
 
 /**
  * RolesSeedCommand
@@ -51,8 +52,8 @@ class RolesSeedCommand extends Command
         $this->info('Seeding default roles and permissions...');
         
         try {
-            $roles = config('guardify.roles', []);
-            
+            $roles = Config::get('guardify.roles', []);
+
             if (empty($roles)) {
                 $this->warn('No roles found in configuration. Please check your config/guardify.php file.');
                 return 1;
