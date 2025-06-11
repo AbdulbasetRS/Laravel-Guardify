@@ -5,12 +5,13 @@ namespace Abdulbaset\Guardify\Console\Commands;
 use Illuminate\Console\Command;
 use Abdulbaset\Guardify\Models\Permission;
 use Illuminate\Support\Facades\Config;
+use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * PermissionsSeedCommand
  *
- * This Artisan command seeds the database with permissions from your configuration file.
- * It will only add new permissions and update existing ones, without deleting anything.
+ * This command seeds the database with permissions from roles configuration.
+ * It only adds new permissions and skips existing ones.
  *
  * @package Abdulbaset\Guardify\Console\Commands
  * @author Abdulbaset R. Sayed
@@ -32,7 +33,7 @@ class PermissionsSeedCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Seed the database with permissions from the configuration file. This is a safe operation that only adds new permissions without removing existing ones.';
+    protected $description = 'Seed permissions from roles configuration. Only adds new permissions.';
 
     /**
      * Execute the console command.
@@ -41,88 +42,85 @@ class PermissionsSeedCommand extends Command
      */
     public function handle()
     {
-        $this->info('🌱 Seeding permissions from config file...');
+        $output = new SymfonyStyle($this->input, $this->output);
         
         try {
-            $allPermissions = $this->getAllPermissionsFromConfig();
+            $output->text('🌱 Seeding default permissions...');
             
-            if (empty($allPermissions)) {
-                $this->warn('No permissions found in configuration. Please check your config/roles.php file.');
-                return 1;
+            // Get all unique permissions from roles
+            $permissions = $this->getUniquePermissionsFromRoles();
+            
+            if (empty($permissions)) {
+                $output->warning('No permissions found in roles configuration. Please check your config/guardify.php file.');
+                return Command::FAILURE;
             }
-            
-            $this->line('🔍 Found ' . count($allPermissions) . ' permissions in config file');
             
             $addedCount = 0;
-            $updatedCount = 0;
+            $existingCount = 0;
             
-            foreach ($allPermissions as $slug => $name) {
-                $permission = Permission::withTrashed()->firstOrNew(['slug' => $slug]);
+            foreach ($permissions as $slug => $permissionData) {
+                // Check if permission exists
+                $permission = Permission::where('slug', $slug)->first();
                 
-                if ($permission->exists) {
-                    if ($permission->trashed()) {
-                        $permission->restore();
-                        $this->line("  ♻️  Restored permission: {$name} (<comment>{$slug}</comment>)");
-                    } elseif ($permission->name !== $name) {
-                        $permission->name = $name;
-                        $permission->save();
-                        $this->line("  🔄 Updated permission: {$name} (<comment>{$slug}</comment>)");
-                        $updatedCount++;
-                    } else {
-                        $this->line("  ✓ Exists: {$name} (<comment>{$slug}</comment>)");
-                        continue;
-                    }
-                } else {
-                    $permission->name = $name;
-                    $permission->save();
-                    $this->line("  ➕ Added permission: {$name} (<comment>{$slug}</comment>)");
-                    $addedCount++;
+                if ($permission) {
+                    $existingCount++;
+                    continue;
                 }
+                
+                // Create new permission
+                Permission::create([
+                    'slug' => $slug,
+                    'name' => $permissionData['name'],
+                    'description' => $permissionData['description'] ?? ucfirst(str_replace(['-', '_'], ' ', $slug)),
+                ]);
+                
+                $addedCount++;
             }
             
-            $this->newLine();
-            $this->info("✅ Successfully seeded permissions!");
-            $this->line("  - Added: {$addedCount} new permissions");
-            $this->line("  - Updated: {$updatedCount} existing permissions");
+            $output->newLine();
+            $output->success("✅ Permissions seeding completed!");
+            $output->text("  - Added: {$addedCount} new permissions");
+            $output->text("  - Found: {$existingCount} existing permissions");
             
-            return 0;
+            return Command::SUCCESS;
             
         } catch (\Exception $e) {
-            $this->error('Error seeding permissions: ' . $e->getMessage());
-            return 1;
+            $output->error('Error seeding permissions: ' . $e->getMessage());
+            return Command::FAILURE;
         }
     }
-    
+
     /**
      * Get all unique permissions from roles configuration
      *
      * @return array
      */
-    protected function getPermissionsFromConfig(): array
+    protected function getUniquePermissionsFromRoles(): array
     {
         $permissions = [];
-
-        // Get permissions from roles configuration
         $roles = Config::get('guardify.roles', []);
 
         foreach ($roles as $role) {
             if (isset($role['permissions']) && is_array($role['permissions'])) {
                 foreach ($role['permissions'] as $permission) {
-                    if (is_string($permission)) {
-                        $permissions[$permission] = [
-                            'name' => $permission,
-                            'description' => ucfirst(str_replace(['-', '_'], ' ', $permission)),
-                        ];
-                    } elseif (is_array($permission) && isset($permission['name'])) {
-                        $permissions[$permission['name']] = [
-                            'name' => $permission['name'],
-                            'description' => $permission['description'] ?? ucfirst(str_replace(['-', '_'], ' ', $permission['name'])),
-                        ];
+                    // Handle both string and array formats
+                    $permissionData = is_string($permission)
+                        ? ['name' => $permission]
+                        : $permission;
+
+                    // Skip if permission already exists
+                    if (isset($permissions[$permissionData['name']])) {
+                        continue;
                     }
+
+                    $permissions[$permissionData['name']] = [
+                        'name' => $permissionData['name'],
+                        'description' => $permissionData['description'] ?? ucfirst(str_replace(['-', '_'], ' ', $permissionData['name'])),
+                    ];
                 }
             }
         }
 
-        return array_values($permissions);
+        return $permissions;
     }
 }

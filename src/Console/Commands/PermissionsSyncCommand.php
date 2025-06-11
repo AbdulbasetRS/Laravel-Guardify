@@ -5,13 +5,13 @@ namespace Abdulbaset\Guardify\Console\Commands;
 use Illuminate\Console\Command;
 use Abdulbaset\Guardify\Models\Permission;
 use Illuminate\Support\Facades\Config;
+use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * PermissionsSyncCommand
  *
- * This Artisan command synchronizes permissions between your configuration file
- * and the database. It ensures that all permissions defined in your roles configuration
- * exist in the database, and removes any permissions that are no longer in use.
+ * This command synchronizes permissions by deleting all existing permissions
+ * and recreating them from the configuration file.
  *
  * @package Abdulbaset\Guardify\Console\Commands
  * @author Abdulbaset R. Sayed
@@ -34,72 +34,87 @@ class PermissionsSyncCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Synchronize permissions with the configuration file. WARNING: This will remove any permissions that are not defined in the configuration file. Use with caution!';
+    protected $description = 'Sync permissions by deleting all existing permissions and recreating them from config.';
 
     /**
      * Execute the console command.
-     * 
-     * This method performs the following actions:
-     * 1. Collects all permissions from the roles configuration
-     * 2. Creates any new permissions that don't exist in the database
-     * 3. Updates existing permissions if their names have changed
-     * 4. Removes permissions that are no longer in the configuration
      *
-     * @return int Returns 0 on success, 1 on failure
+     * @return int
      */
     public function handle()
     {
-        $this->info('🔄 Syncing permissions with database...');
+        $output = new SymfonyStyle($this->input, $this->output);
         
         try {
-            $allPermissions = [];
-            $roles = Config::get('guardify.roles', []);
-
-            if (empty($roles)) {
-                $this->warn('No roles found in configuration. Please check your config/guardify.php file.');
-                return 1;
-            }
+            $output->text('🔄 Synchronizing permissions...');
             
-            // Collect all unique permissions from all roles
-            $this->line('🔍 Collecting permissions from roles configuration...');
-            $permissions = $this->getPermissionsFromConfig();
+            // Get all unique permissions from roles
+            $permissions = $this->getUniquePermissionsFromRoles();
             
             if (empty($permissions)) {
-                $this->warn('No valid permissions found in any role.');
-                return 1;
+                $output->warning('No permissions found in roles configuration. Please check your config/guardify.php file.');
+                return Command::FAILURE;
             }
             
-            // Sync permissions
-            $this->line('🔄 Syncing permissions with database...');
-            $syncedCount = 0;
+            // Delete all existing permissions
+            $deletedCount = Permission::query()->delete();
+            $output->text("🗑️ Deleted {$deletedCount} existing permissions");
             
-            foreach ($allPermissions as $slug => $name) {
-                $permission = Permission::updateOrCreate(
-                    ['slug' => $slug],
-                    ['name' => $name]
-                );
-                
-                $this->line("  ✓ Permission: {$name} (<comment>{$slug}</comment>)");
-                $syncedCount++;
+            // Create new permissions from config
+            $createdCount = 0;
+            foreach ($permissions as $slug => $permissionData) {
+                Permission::create([
+                    'slug' => $slug,
+                    'name' => $permissionData['name'],
+                    'description' => $permissionData['description'] ?? ucfirst(str_replace(['-', '_'], ' ', $slug)),
+                ]);
+                $createdCount++;
             }
             
-            // Remove permissions that no longer exist in config
-            $permissionSlugs = array_keys($allPermissions);
-            $deletedCount = Permission::whereNotIn('slug', $permissionSlugs)->delete();
+            $output->newLine();
+            $output->success("✅ Permissions synchronization completed!");
+            $output->text("  - Deleted: {$deletedCount} permissions");
+            $output->text("  - Created: {$createdCount} permissions");
             
-            $this->newLine();
-            $this->info("✅ Successfully synced {$syncedCount} permissions.");
-            
-            if ($deletedCount > 0) {
-                $this->warn("  - Removed {$deletedCount} permissions that no longer exist in configuration.");
-            }
-            
-            return 0;
+            return Command::SUCCESS;
             
         } catch (\Exception $e) {
-            $this->error('❌ Error syncing permissions: ' . $e->getMessage());
-            $this->error($e->getTraceAsString());
-            return 1;
+            $output->error('Error synchronizing permissions: ' . $e->getMessage());
+            return Command::FAILURE;
         }
+    }
+
+    /**
+     * Get all unique permissions from roles configuration
+     *
+     * @return array
+     */
+    protected function getUniquePermissionsFromRoles(): array
+    {
+        $permissions = [];
+        $roles = Config::get('guardify.roles', []);
+
+        foreach ($roles as $role) {
+            if (isset($role['permissions']) && is_array($role['permissions'])) {
+                foreach ($role['permissions'] as $permission) {
+                    // Handle both string and array formats
+                    $permissionData = is_string($permission)
+                        ? ['name' => $permission]
+                        : $permission;
+
+                    // Skip if permission already exists
+                    if (isset($permissions[$permissionData['name']])) {
+                        continue;
+                    }
+
+                    $permissions[$permissionData['name']] = [
+                        'name' => $permissionData['name'],
+                        'description' => $permissionData['description'] ?? ucfirst(str_replace(['-', '_'], ' ', $permissionData['name'])),
+                    ];
+                }
+            }
+        }
+
+        return $permissions;
     }
 }
