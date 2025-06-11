@@ -3,19 +3,20 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Config;
 
 return new class extends Migration
 {
     public function up()
     {
-        Schema::create(config('roles.tables.role_user'), function (Blueprint $table) {
+        Schema::create(Config::get('guardify.tables.role_user'), function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')
                   ->unique()  // Ensures one role per user
                   ->constrained()
                   ->onDelete('cascade');
             $table->foreignId('role_id')
-                  ->constrained(config('roles.tables.roles'))
+                  ->constrained(Config::get('guardify.tables.roles'))
                   ->onDelete('cascade');
             $table->timestamps();
         });
@@ -23,6 +24,6 @@ return new class extends Migration
 
     public function down()
     {
-        Schema::dropIfExists(config('roles.tables.role_user'));
+        Schema::dropIfExists(Config::get('guardify.tables.role_user'));
     }
 };

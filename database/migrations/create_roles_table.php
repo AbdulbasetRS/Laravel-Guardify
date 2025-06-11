@@ -3,12 +3,13 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Config;
 
 return new class extends Migration
 {
     public function up()
     {
-        Schema::create(config('roles.tables.roles'), function (Blueprint $table) {
+        Schema::create(Config::get('guardify.tables.roles'), function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('slug')->unique();
@@ -19,6 +20,6 @@ return new class extends Migration
 
     public function down()
     {
-        Schema::dropIfExists(config('roles.tables.roles'));
+        Schema::dropIfExists(Config::get('guardify.tables.roles'));
     }
 };
