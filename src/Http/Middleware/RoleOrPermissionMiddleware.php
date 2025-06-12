@@ -4,7 +4,6 @@ namespace Abdulbaset\Guardify\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class RoleOrPermissionMiddleware
@@ -21,10 +20,22 @@ class RoleOrPermissionMiddleware
     {
         $user = $request->user();
         
-        if (! $user || (! $user->hasRole($roleOrPermission) && ! $user->hasPermission($roleOrPermission))) {
-            abort(403, 'Unauthorized action.');
+        if (! $user) {
+            abort(403, 'Unauthenticated.');
         }
 
-        return $next($request);
+        // Split the roles and permissions by |
+        $rolesOrPermissions = is_array($roleOrPermission) 
+            ? $roleOrPermission 
+            : explode('|', $roleOrPermission);
+
+        // Check if user has any of the roles or permissions
+        foreach ($rolesOrPermissions as $roleOrPerm) {
+            if ($user->hasRole($roleOrPerm) || $user->hasPermission($roleOrPerm)) {
+                return $next($request);
+            }
+        }
+
+        abort(403, 'Unauthorized action.');
     }
 }
