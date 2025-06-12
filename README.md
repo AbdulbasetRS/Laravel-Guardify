@@ -559,6 +559,8 @@ php artisan guardify:roles:seed
 
 This command will **safely seed** roles from your config file. It will:
 - Create any new roles from your config file
+- Create missing permissions for roles
+- Add missing permissions to roles
 - **Never delete** any roles, even if they're not in your config file
 
 #### Sync Roles (Dangerous ⚠️)
@@ -570,7 +572,8 @@ php artisan guardify:roles:sync
 This command will **synchronize** roles between your config file and database. It will:
 - **Delete** any roles not in your config file
 - Create all roles from your config file
-
+- Create missing permissions for roles
+- Add missing permissions to roles
 
 ### 2. Managing Permissions
 

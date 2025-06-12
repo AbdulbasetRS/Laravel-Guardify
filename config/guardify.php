@@ -25,16 +25,21 @@ return [
     |
     */
     'permissions' => [
-        'create user' => [
-            'slug' => 'create-user',
-            'description' => 'Ability to create new user',
+        'create' => [
+            'slug' => 'create',
+            'description' => 'Ability to create new record',
         ],
-        'read user',
-        'update user' => [
-            'description' => 'Ability to update user',
+        'read' => [
+            'slug' => 'read',
+            'description' => 'Ability to read record',
         ],
-        'delete user' => [
-            'slug' => 'delete-user',
+        'update' => [
+            'slug' => 'update',
+            'description' => 'Ability to update record',
+        ],
+        'delete' => [
+            'slug' => 'delete',
+            'description' => 'Ability to delete record',
         ],
     ],
 
