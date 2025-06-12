@@ -16,6 +16,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * @package Abdulbaset\Guardify\Console\Commands
  * @author Abdulbaset R. Sayed
  * @link https://github.com/AbdulbasetRS/laravel-guardify
+ * @link https://www.linkedin.com/in/abdulbaset-r-sayed
  * @version 1.0.0
  * @license MIT
  */

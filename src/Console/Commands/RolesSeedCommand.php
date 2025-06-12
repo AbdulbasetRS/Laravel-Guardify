@@ -6,14 +6,13 @@ use Illuminate\Console\Command;
 use Abdulbaset\Guardify\Models\Role;
 use Abdulbaset\Guardify\Models\Permission;
 use Illuminate\Support\Facades\Config;
+use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * RolesSeedCommand
  *
- * This Artisan command seeds the database with default roles and permissions
- * as defined in the roles configuration file. It creates or updates roles
- * and their associated permissions, ensuring the database stays in sync
- * with your configuration.
+ * This command seeds roles and their permissions from the configuration file.
+ * It only adds new roles and permissions, and updates their relationships.
  *
  * @package Abdulbaset\Guardify\Console\Commands
  * @author Abdulbaset R. Sayed
@@ -36,90 +35,130 @@ class RolesSeedCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Seed the database with default roles and permissions from the configuration file. This is a safe operation that only adds new roles and permissions without removing existing ones.';
+    protected $description = 'Seed roles and their permissions from configuration. Only adds new roles and permissions.';
 
     /**
      * Execute the console command.
-     * 
-     * Reads roles and permissions from the configuration file and creates/updates
-     * them in the database. This ensures your database stays in sync with your
-     * configuration.
      *
-     * @return int Returns 0 on success, 1 on failure
+     * @return int
      */
     public function handle()
     {
-        $this->info('Seeding default roles and permissions...');
+        $output = new SymfonyStyle($this->input, $this->output);
         
         try {
+            $output->text('🌱 Seeding roles and permissions...');
+            
+            // Get roles and permissions from config
             $roles = Config::get('guardify.roles', []);
-
+            
             if (empty($roles)) {
-                $this->warn('No roles found in configuration. Please check your config/guardify.php file.');
-                return 1;
+                $output->warning('No roles found in configuration. Please check your config/guardify.php file.');
+                return Command::FAILURE;
             }
             
-            foreach ($roles as $roleSlug => $roleData) {
-                $this->createRoleWithPermissions($roleSlug, $roleData);
+            // Get existing permissions from database
+            $existingPermissions = Permission::pluck('slug')->toArray();
+            
+            $roleStats = [
+                'existing' => 0,
+                'added' => 0,
+            ];
+            
+            $permissionStats = [
+                'existing' => count($existingPermissions),
+                'added' => 0,
+            ];
+            
+            // Get all unique permissions first
+            $uniquePermissions = $this->getUniquePermissionsFromRoles();
+            
+            // Create new permissions
+            foreach ($uniquePermissions as $slug => $permissionData) {
+                if (!in_array($slug, $existingPermissions)) {
+                    Permission::create([
+                        'slug' => $slug,
+                        'name' => $permissionData['name'],
+                        'description' => $permissionData['description'] ?? ucfirst(str_replace(['-', '_'], ' ', $slug)),
+                    ]);
+                    $permissionStats['added']++;
+                }
             }
             
-            $this->info('✓ Roles and permissions seeded successfully!');
-            return 0;
+            // Create roles and attach permissions
+            foreach ($roles as $slug => $roleData) {
+                $role = Role::firstOrNew(['slug' => $slug]);
+                
+                if ($role->exists) {
+                    $roleStats['existing']++;
+                } else {
+                    $role->name = $roleData['name'] ?? ucfirst(str_replace(['-', '_'], ' ', $slug));
+                    $role->save();
+                    $roleStats['added']++;
+                }
+                
+                // Attach permissions to role
+                if (isset($roleData['permissions']) && is_array($roleData['permissions'])) {
+                    foreach ($roleData['permissions'] as $permission) {
+                        $permissionData = is_string($permission)
+                            ? ['name' => $permission]
+                            : $permission;
+                            
+                        $permissionSlug = $permissionData['name'];
+                        
+                        if (!$role->permissions()->where('slug', $permissionSlug)->exists()) {
+                            $role->permissions()->attach(Permission::where('slug', $permissionSlug)->first());
+                        }
+                    }
+                }
+            }
+            
+            $output->newLine();
+            $output->success("✅ Roles and permissions seeding completed!");
+            $output->text("  - Roles:");
+            $output->text("    • Existing: {$roleStats['existing']}");
+            $output->text("    • Added: {$roleStats['added']}");
+            $output->text("  - Permissions:");
+            $output->text("    • Existing: {$permissionStats['existing']}");
+            $output->text("    • Added: {$permissionStats['added']}");
+            
+            return Command::SUCCESS;
             
         } catch (\Exception $e) {
-            $this->error('Error seeding roles and permissions: ' . $e->getMessage());
-            return 1;
+            $output->error('Error seeding roles and permissions: ' . $e->getMessage());
+            return Command::FAILURE;
         }
     }
-    
+
     /**
-     * Create or update a role with its associated permissions.
+     * Get all unique permissions from roles configuration
      *
-     * @param string $roleSlug The slug of the role to create/update
-     * @param array $roleData Array containing role information including name and permissions
-     * @return void
+     * @return array
      */
-    protected function createRoleWithPermissions(string $roleSlug, array $roleData)
+    protected function getUniquePermissionsFromRoles(): array
     {
-        // Validate role data
-        if (empty($roleData['name'])) {
-            $this->warn("Skipping role '{$roleSlug}': Missing role name");
-            return;
+        $permissions = [];
+        $roles = Config::get('guardify.roles', []);
+
+        foreach ($roles as $role) {
+            if (isset($role['permissions']) && is_array($role['permissions'])) {
+                foreach ($role['permissions'] as $permission) {
+                    $permissionData = is_string($permission)
+                        ? ['name' => $permission]
+                        : $permission;
+
+                    if (isset($permissions[$permissionData['name']])) {
+                        continue;
+                    }
+
+                    $permissions[$permissionData['name']] = [
+                        'name' => $permissionData['name'],
+                        'description' => $permissionData['description'] ?? ucfirst(str_replace(['-', '_'], ' ', $permissionData['name'])),
+                    ];
+                }
+            }
         }
 
-        // Create or update the role
-        $role = Role::updateOrCreate(
-            ['slug' => $roleSlug],
-            ['name' => $roleData['name']]
-        );
-        
-        $this->line("<info>✓ Role created/updated:</info> {$role->name} ({$role->slug})");
-        
-        // Process permissions for this role
-        $permissionSlugs = $roleData['permissions'] ?? [];
-        $permissionIds = [];
-        $addedCount = 0;
-        
-        foreach ($permissionSlugs as $permissionSlug) {
-            if (empty($permissionSlug)) {
-                continue;
-            }
-            
-            $permission = Permission::firstOrCreate(
-                ['slug' => $permissionSlug],
-                ['name' => ucfirst(str_replace('-', ' ', $permissionSlug))]
-            );
-            
-            $permissionIds[] = $permission->id;
-            $addedCount++;
-            $this->line("  ✓ Permission: {$permission->name} ({$permission->slug})");
-        }
-        
-        // Sync all permissions at once for better performance
-        $role->permissions()->sync($permissionIds);
-        
-        if ($addedCount === 0) {
-            $this->line("  <comment>No permissions assigned to this role.</comment>");
-        }
+        return $permissions;
     }
 }
