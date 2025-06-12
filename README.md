@@ -551,6 +551,16 @@ public function store(Request $request)
 
 ### 1. Managing Roles
 
+#### Seed Roles (Safe ✅)
+
+```bash
+php artisan guardify:roles:seed
+```
+
+This command will **safely seed** roles from your config file. It will:
+- Create any new roles from your config file
+- **Never delete** any roles, even if they're not in your config file
+
 #### Sync Roles (Dangerous ⚠️)
 
 ```bash
@@ -558,33 +568,20 @@ php artisan guardify:roles:sync
 ```
 
 This command will **synchronize** roles between your config file and database. It will:
-- Create any new roles from your config file
-- Update existing roles if their names change
 - **Delete** any roles not in your config file
+- Create all roles from your config file
 
-#### Seed/Update Roles (Safe ✅)
-
-```bash
-php artisan guardify:roles:seed
-```
-
-This command will **safely seed or update** roles from your config file. It will:
-- Create any new roles from your config file
-- Update existing roles if their names change
-- **Never delete** any roles, even if they're not in your config file
 
 ### 2. Managing Permissions
 
-#### Sync Permissions (Dangerous ⚠️)
-#### Seed/Update Permissions (Safe ✅)
+#### Seed Permissions (Safe ✅)
 
 ```bash
 php artisan guardify:permissions:seed
 ```
 
-This command will **safely seed or update** permissions from your config file. It will:
+This command will **safely seed** permissions from your config file. It will:
 - Create any new permissions from your config file
-- Update existing permissions if their names change
 - **Never delete** any permissions, even if they're not in your config file
 
 #### Sync Permissions (Dangerous ⚠️)
@@ -594,9 +591,8 @@ php artisan guardify:permissions:sync
 ```
 
 This command will **synchronize** permissions between your config file and database. It will:
-- Create any new permissions from your config file
-- Update existing permissions if their names change
 - **Delete** any permissions not in your config file
+- Create all permissions from your config file
 
 ### When to Use Each Command
 

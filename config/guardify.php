@@ -14,11 +14,37 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Default Roles and Permissions
+    | Default Permissions
     |--------------------------------------------------------------------------
     |
-    | This array defines the default roles and their permissions that will be
-    | seeded when running the `guardify:seed` Artisan command.
+    | This array defines all available permissions in the system.
+    | Each permission can be defined in three ways:
+    | 1. Simple string: 'permission-name'
+    | 2. String with array: 'permission-name' => ['description' => '...']
+    | 3. String with array: 'permission-name' => ['slug' => 'custom-slug', 'description' => '...']
+    |
+    */
+    'permissions' => [
+        'create user' => [
+            'slug' => 'create-user',
+            'description' => 'Ability to create new user',
+        ],
+        'read user',
+        'update user' => [
+            'description' => 'Ability to update user',
+        ],
+        'delete user' => [
+            'slug' => 'delete-user',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Roles and Their Permissions
+    |--------------------------------------------------------------------------
+    |
+    | This array defines the default roles and their associated permissions.
+    | Each role should have a unique slug, name, and array of permission slugs.
     |
     */
     'roles' => [

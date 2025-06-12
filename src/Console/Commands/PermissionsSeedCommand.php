@@ -5,6 +5,7 @@ namespace Abdulbaset\Guardify\Console\Commands;
 use Illuminate\Console\Command;
 use Abdulbaset\Guardify\Models\Permission;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Str;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
@@ -34,7 +35,7 @@ class PermissionsSeedCommand extends Command
      *
      * @var string
      */
-    protected $description = 'Seed permissions from roles configuration. Only adds new permissions.';
+    protected $description = 'Seed permissions from config file. Supports flexible permission formats.';
 
     /**
      * Execute the console command.
@@ -46,42 +47,40 @@ class PermissionsSeedCommand extends Command
         $output = new SymfonyStyle($this->input, $this->output);
         
         try {
-            $output->text('🌱 Seeding default permissions...');
+            $output->text('🌱 Seeding permissions...');
             
-            // Get all unique permissions from roles
-            $permissions = $this->getUniquePermissionsFromRoles();
+            // Get permissions from config
+            $permissions = Config::get('guardify.permissions', []);
             
             if (empty($permissions)) {
-                $output->warning('No permissions found in roles configuration. Please check your config/guardify.php file.');
+                $output->warning('No permissions found in configuration. Please check your config/guardify.php file.');
                 return Command::FAILURE;
             }
             
-            $addedCount = 0;
-            $existingCount = 0;
+            // Process permissions and generate unique slugs
+            $processedPermissions = $this->processPermissions($permissions);
             
-            foreach ($permissions as $slug => $permissionData) {
+            $addedCount = 0;
+            $foundCount = 0;
+            
+            foreach ($processedPermissions as $permission) {
                 // Check if permission exists
-                $permission = Permission::where('slug', $slug)->first();
+                $permissionModel = Permission::where('slug', $permission['slug'])->first();
                 
-                if ($permission) {
-                    $existingCount++;
+                if ($permissionModel) {
+                    $foundCount++;
                     continue;
                 }
                 
                 // Create new permission
-                Permission::create([
-                    'slug' => $slug,
-                    'name' => $permissionData['name'],
-                    'description' => $permissionData['description'] ?? ucfirst(str_replace(['-', '_'], ' ', $slug)),
-                ]);
-                
+                Permission::create($permission);
                 $addedCount++;
             }
             
             $output->newLine();
             $output->success("✅ Permissions seeding completed!");
             $output->text("  - Added: {$addedCount} new permissions");
-            $output->text("  - Found: {$existingCount} existing permissions");
+            $output->text("  - Found: {$foundCount} existing permissions");
             
             return Command::SUCCESS;
             
@@ -92,36 +91,34 @@ class PermissionsSeedCommand extends Command
     }
 
     /**
-     * Get all unique permissions from roles configuration
+     * Process permissions and generate unique slugs
      *
+     * @param array $permissions
      * @return array
      */
-    protected function getUniquePermissionsFromRoles(): array
+    public function processPermissions(array $permissions): array
     {
-        $permissions = [];
-        $roles = Config::get('guardify.roles', []);
-
-        foreach ($roles as $role) {
-            if (isset($role['permissions']) && is_array($role['permissions'])) {
-                foreach ($role['permissions'] as $permission) {
-                    // Handle both string and array formats
-                    $permissionData = is_string($permission)
-                        ? ['name' => $permission]
-                        : $permission;
-
-                    // Skip if permission already exists
-                    if (isset($permissions[$permissionData['name']])) {
-                        continue;
-                    }
-
-                    $permissions[$permissionData['name']] = [
-                        'name' => $permissionData['name'],
-                        'description' => $permissionData['description'] ?? ucfirst(str_replace(['-', '_'], ' ', $permissionData['name'])),
-                    ];
-                }
+        $result = [];
+    
+        foreach ($permissions as $key => $value) {
+            // Determine if it's key => value OR just a simple string value
+            if (is_string($value)) {
+                $name = ucwords($value);
+                $slug = Str::slug($value);
+                $description = "Ability to $name" . ' permission.';
+            } else {
+                $name = ucwords($key);
+                $slug = $value['slug'] ?? Str::slug($key);
+                $description = $value['description'] ?? "Ability to $name" . ' permission.';
             }
+    
+            $result[] = [
+                'name' => $name,
+                'slug' => $slug,
+                'description' => $description,
+            ];
         }
-
-        return $permissions;
+    
+        return $result;
     }
 }
