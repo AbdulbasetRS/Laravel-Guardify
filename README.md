@@ -65,6 +65,80 @@ php artisan migrate
 > php artisan vendor:publish --provider="Abdulbaset\Guardify\GuardifyServiceProvider" --tag=guardify-migrations
 > ```
 
+## Configuration
+
+You can customize the package by publishing the configuration file:
+
+```bash
+php artisan vendor:publish --provider="Abdulbaset\RolesPermissions\RolesPermissionsServiceProvider" --tag=roles-config
+```
+
+## Artisan Commands
+
+### 1. Managing Roles
+
+#### Seed Roles (Safe ✅)
+
+```bash
+php artisan guardify:roles:seed
+```
+
+This command will **safely seed** roles from your config file. It will:
+- Create any new roles from your config file
+- Create missing permissions for roles
+- Add missing permissions to roles
+- **Never delete** any roles, even if they're not in your config file
+
+#### Sync Roles (Dangerous ⚠️)
+
+```bash
+php artisan guardify:roles:sync
+```
+
+This command will **synchronize** roles between your config file and database. It will:
+- **Delete** any roles not in your config file
+- Create all roles from your config file
+- Create missing permissions for roles
+- Add missing permissions to roles
+
+### 2. Managing Permissions
+
+#### Seed Permissions (Safe ✅)
+
+```bash
+php artisan guardify:permissions:seed
+```
+
+This command will **safely seed** permissions from your config file. It will:
+- Create any new permissions from your config file
+- **Never delete** any permissions, even if they're not in your config file
+
+#### Sync Permissions (Dangerous ⚠️)
+
+```bash
+php artisan guardify:permissions:sync
+```
+
+This command will **synchronize** permissions between your config file and database. It will:
+- **Delete** any permissions not in your config file
+- Create all permissions from your config file
+
+### When to Use Each Command
+
+| Command | Safe? | Best For |
+|---------|------|----------|
+| `guardify:roles:seed` | ✅ Safe | Initial setup or adding new roles without affecting existing ones |
+| `guardify:roles:sync` | ⚠️ Dangerous | Cleaning up old roles and ensuring database matches config exactly |
+| `guardify:permissions:seed` | ✅ Safe | Adding new permissions without affecting existing ones |
+| `guardify:permissions:sync` | ⚠️ Dangerous | Cleaning up old permissions and ensuring database matches config exactly |
+
+### Recommended Workflow
+
+1. Use the safe `guardify:roles:seed` and `guardify:permissions:seed` for normal development
+2. Only use `guardify:roles:sync` and `guardify:permissions:sync` when you need to clean up old data
+3. Always backup your database before running sync commands
+4. In production, consider running sync commands in a controlled manner after thorough testing
+
 ## Usage
 
 ### Add HasRoles Trait to User Model
@@ -545,80 +619,6 @@ public function store(Request $request)
 @endhasallpermissions
 ```
 
-## Artisan Commands
-
-### 1. Managing Roles
-
-#### Seed Roles (Safe ✅)
-
-```bash
-php artisan guardify:roles:seed
-```
-
-This command will **safely seed** roles from your config file. It will:
-- Create any new roles from your config file
-- Create missing permissions for roles
-- Add missing permissions to roles
-- **Never delete** any roles, even if they're not in your config file
-
-#### Sync Roles (Dangerous ⚠️)
-
-```bash
-php artisan guardify:roles:sync
-```
-
-This command will **synchronize** roles between your config file and database. It will:
-- **Delete** any roles not in your config file
-- Create all roles from your config file
-- Create missing permissions for roles
-- Add missing permissions to roles
-
-### 2. Managing Permissions
-
-#### Seed Permissions (Safe ✅)
-
-```bash
-php artisan guardify:permissions:seed
-```
-
-This command will **safely seed** permissions from your config file. It will:
-- Create any new permissions from your config file
-- **Never delete** any permissions, even if they're not in your config file
-
-#### Sync Permissions (Dangerous ⚠️)
-
-```bash
-php artisan guardify:permissions:sync
-```
-
-This command will **synchronize** permissions between your config file and database. It will:
-- **Delete** any permissions not in your config file
-- Create all permissions from your config file
-
-### When to Use Each Command
-
-| Command | Safe? | Best For |
-|---------|------|----------|
-| `guardify:roles:seed` | ✅ Safe | Initial setup or adding new roles without affecting existing ones |
-| `guardify:roles:sync` | ⚠️ Dangerous | Cleaning up old roles and ensuring database matches config exactly |
-| `guardify:permissions:seed` | ✅ Safe | Adding new permissions without affecting existing ones |
-| `guardify:permissions:sync` | ⚠️ Dangerous | Cleaning up old permissions and ensuring database matches config exactly |
-
-### Recommended Workflow
-
-1. Use the safe `guardify:roles:seed` and `guardify:permissions:seed` for normal development
-2. Only use `guardify:roles:sync` and `guardify:permissions:sync` when you need to clean up old data
-3. Always backup your database before running sync commands
-4. In production, consider running sync commands in a controlled manner after thorough testing
-
-## Configuration
-
-You can customize the package by publishing the configuration file:
-
-```bash
-php artisan vendor:publish --provider="Abdulbaset\RolesPermissions\RolesPermissionsServiceProvider" --tag=roles-config
-```
-
 ## Testing
 
 ```bash
@@ -635,7 +635,7 @@ Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
 ## Security Vulnerabilities
 
-If you discover any security related issues, please email abdulbasetredasayedhf@gmail.com instead of using the issue tracker.
+If you discover any security related issues, please email AbdulbasetRedaSayedHF@gmail.com instead of using the issue tracker.
 
 ## License
 
