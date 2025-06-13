@@ -133,18 +133,51 @@ class Role extends Model
      * If the permission doesn't exist, it will be created.
      *
      * @param string $permissionSlug The slug of the permission to assign
-     * @return void
+     * @return bool Returns true if the permission was assigned successfully, false if the permission already exists
      */
-    public function givePermission(string $permissionSlug): void
+    public function givePermission(string $permissionSlug): bool
     {
         $permission = Permission::firstOrCreate(
             ['slug' => $permissionSlug],
             ['name' => ucfirst(str_replace('-', ' ', $permissionSlug))]
         );
 
-        if (!$this->hasPermission($permissionSlug)) {
-            $this->permissions()->attach($permission);
+        if ($this->hasPermission($permissionSlug)) {
+            return false;
         }
+
+        $this->permissions()->attach($permission);
+        return true;
+    }
+
+    /**
+     * Assign multiple permissions to the role.
+     * If any permission doesn't exist, it will be created.
+     *
+     * @param array $permissionSlugs Array of permission slugs to assign
+     * @return bool Returns true if any permission was assigned, false if all permissions already exist
+     */
+    public function givePermissions(array $permissionSlugs): bool
+    {
+        if (empty($permissionSlugs)) {
+            return false;
+        }
+
+        $changesMade = false;
+        
+        foreach ($permissionSlugs as $slug) {
+            $permission = Permission::firstOrCreate(
+                ['slug' => $slug],
+                ['name' => ucfirst(str_replace('-', ' ', $slug))]
+            );
+
+            if (!$this->hasPermission($slug)) {
+                $this->permissions()->attach($permission);
+                $changesMade = true;
+            }
+        }
+
+        return $changesMade;
     }
 
     /**
@@ -152,11 +185,17 @@ class Role extends Model
      * Any permissions not in the array will be detached from the role.
      *
      * @param array $permissionSlugs Array of permission slugs to sync
-     * @return void
+     * @return bool Returns true if the permissions were synced successfully, false if there were no changes
      */
-    public function syncPermissions(array $permissionSlugs): void
+    public function syncPermissions(array $permissionSlugs): bool
     {
+        if (empty($permissionSlugs)) {
+            return false;
+        }
+
         $permissionIds = [];
+        $currentPermissions = $this->permissions()->pluck('id')->toArray();
+        $changesMade = false;
         
         foreach ($permissionSlugs as $slug) {
             $permission = Permission::firstOrCreate(
@@ -166,7 +205,26 @@ class Role extends Model
             $permissionIds[] = $permission->id;
         }
         
-        $this->permissions()->sync($permissionIds);
+        // Sync permissions and check for changes
+        $syncResult = $this->permissions()->sync($permissionIds);
+        
+        // Check if any changes were made
+        $changesMade = !empty($syncResult['attached']) || !empty($syncResult['detached']);
+        
+        return $changesMade;
+    }
+
+    /**
+     * Check if the role has any of the specified permissions.
+     *
+     * @param array $permissionSlugs Array of permission slugs to check
+     * @return bool Returns true if the role has any of the specified permissions
+     */
+    public function hasAnyPermission(array $permissionSlugs): bool
+    {
+        return $this->permissions()
+            ->whereIn('slug', $permissionSlugs)
+            ->exists();
     }
 
     /**

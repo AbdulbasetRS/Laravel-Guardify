@@ -149,9 +149,9 @@ trait HasRoles
      * If the user already has a role, it will be replaced.
      *
      * @param string $roleSlug
-     * @return void
+     * @return bool Returns true if the role was assigned successfully, false if the role already exists
      */
-    public function giveRole(string $roleSlug): void
+    public function giveRole(string $roleSlug): bool
     {
         $role = Role::where('slug', $roleSlug)->first();
 
@@ -159,19 +159,25 @@ trait HasRoles
             throw new \InvalidArgumentException("Role [{$roleSlug}] not found.");
         }
 
+        // Check if the user already has this role
+        if ($this->hasRole($roleSlug)) {
+            return false;
+        }
+
         // Sync the role (will detach any existing roles first)
         $this->role()->sync([$role->id]);
+        return true;
     }
 
     /**
      * Alias for giveRole that accepts a single role slug.
      * 
      * @param string $roleSlug The slug of the role to assign
-     * @return void
+     * @return bool Returns true if the role was assigned successfully, false if the role already exists
      */
-    public function syncRoles(string $roleSlug): void
+    public function syncRoles(string $roleSlug): bool
     {
-        $this->giveRole($roleSlug);
+        return $this->giveRole($roleSlug);
     }
 
     /**
