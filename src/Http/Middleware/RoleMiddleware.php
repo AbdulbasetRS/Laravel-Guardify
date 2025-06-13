@@ -19,10 +19,22 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, string $role): Response
     {
-        if (! $request->user() || ! $request->user()->hasRole($role)) {
-            abort(403, 'Unauthorized action.');
+        $user = $request->user();
+        
+        if (! $user) {
+            abort(403, 'Unauthenticated.');
         }
 
-        return $next($request);
+        // Split the roles by pipe
+        $roles = is_array($role) 
+            ? $role 
+            : explode('|', $role);
+
+        // Check if user has any of the roles using hasAnyRole
+        if ($user->hasAnyRole($roles)) {
+            return $next($request);
+        }
+
+        abort(403, 'Unauthorized action.');
     }
 }

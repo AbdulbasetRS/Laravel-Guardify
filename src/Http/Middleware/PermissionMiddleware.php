@@ -19,10 +19,22 @@ class PermissionMiddleware
      */
     public function handle(Request $request, Closure $next, string $permission): Response
     {
-        if (! $request->user() || ! $request->user()->hasPermission($permission)) {
-            abort(403, 'Unauthorized action.');
+        $user = $request->user();
+        
+        if (! $user) {
+            abort(403, 'Unauthenticated.');
         }
 
-        return $next($request);
+        // Split the permissions by pipe
+        $permissions = is_array($permission) 
+            ? $permission 
+            : explode('|', $permission);
+
+        // Check if user has any of the permissions using hasAnyPermission
+        if ($user->hasAnyPermission($permissions)) {
+            return $next($request);
+        }
+
+        abort(403, 'Unauthorized action.');
     }
 }

@@ -102,17 +102,15 @@ Use the built-in middleware directly in your route definitions like this:
 ```php
 // Using role middleware
 Route::get('/admin', function () {
-    // Only users with the 'admin' role can access this route
-})->middleware('role:admin');
+    // Users with either 'admin' or 'super-admin' role can access this route
+})->middleware('role:admin|super-admin');
 
-// Using permission middleware
-Route::get('/posts/create', function () {
-    // Only users with the 'create-posts' permission can access this route
-})->middleware('permission:create-posts');
+Route::get('/posts', function () {
+    // Users with either 'view-posts' or 'manage-posts' permission can access this route
+})->middleware('permission:view-posts|manage-posts');
 
-// Using role or permission middleware
 Route::get('/dashboard', function () {
-    // Users with either the 'admin' role or 'view-dashboard' permission can access this route
+    // Users with either 'admin' role or 'view-dashboard' permission can access this route
 })->middleware('role_or_permission:admin|view-dashboard');
 ```
 
@@ -126,7 +124,7 @@ public function __construct()
     $this->middleware('role:admin');
     
     // Or for multiple roles
-    $this->middleware('role:admin,editor');
+    $this->middleware('role:admin|editor');
     
     // Using permission middleware
     $this->middleware('permission:edit-posts');
@@ -141,15 +139,15 @@ public function __construct()
 You can specify multiple roles or permissions by separating them with a comma:
 
 ```php
-// User must have all specified roles
+// User must have at least one of the specified roles
 Route::get('/admin', function () {
-    // User must have BOTH 'admin' AND 'super-admin' roles
-})->middleware('role:admin,super-admin');
+    // User must have EITHER 'admin' OR 'super-admin' role
+})->middleware('role:admin|super-admin');
 
 // User must have at least one of the specified permissions
 Route::get('/posts', function () {
     // User must have EITHER 'view-posts' OR 'manage-posts' permission
-})->middleware('permission:view-posts,manage-posts');
+})->middleware('permission:view-posts|manage-posts');
 ```
 
 #### Middleware Groups

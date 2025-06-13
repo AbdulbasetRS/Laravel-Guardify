@@ -30,10 +30,8 @@ class RoleOrPermissionMiddleware
             : explode('|', $roleOrPermission);
 
         // Check if user has any of the roles or permissions
-        foreach ($rolesOrPermissions as $roleOrPerm) {
-            if ($user->hasRole($roleOrPerm) || $user->hasPermission($roleOrPerm)) {
-                return $next($request);
-            }
+        if ($user->hasAnyRole($rolesOrPermissions) || $user->hasAnyPermission($rolesOrPermissions)) {
+            return $next($request);
         }
 
         abort(403, 'Unauthorized action.');
