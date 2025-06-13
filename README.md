@@ -51,7 +51,7 @@ composer require abdulbaset/laravel-guardify
 2. Publish the configuration file (optional):
 
 ```bash
-php artisan vendor:publish --provider="Abdulbaset\Guardify\GuardifyServiceProvider" --tag=guardify-config
+php artisan vendor:publish --provider="Abdulbaset\Guardify\GuardifyServiceProvider" --tag="guardify-config"
 ```
 
 3. Run the migrations:
@@ -62,7 +62,7 @@ php artisan migrate
 
 > **Note:** The migrations will run automatically from the package. If you need to modify them, you can publish them using:
 > ```bash
-> php artisan vendor:publish --provider="Abdulbaset\Guardify\GuardifyServiceProvider" --tag=guardify-migrations
+> php artisan vendor:publish --provider="Abdulbaset\Guardify\GuardifyServiceProvider" --tag="guardify-migrations"
 > ```
 
 ## Configuration
@@ -70,7 +70,7 @@ php artisan migrate
 You can customize the package by publishing the configuration file:
 
 ```bash
-php artisan vendor:publish --provider="Abdulbaset\RolesPermissions\RolesPermissionsServiceProvider" --tag=roles-config
+php artisan vendor:publish --provider="Abdulbaset\Guardify\GuardifyServiceProvider" --tag="guardify-config"
 ```
 
 ## Artisan Commands
