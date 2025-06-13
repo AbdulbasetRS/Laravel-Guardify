@@ -415,49 +415,32 @@ if ($user->hasAnyRole(['admin', 'moderator'])) {
 #### Role Model Methods
 
 ```php
+// Get a role
+$role = Role::where('slug', 'admin')->first();
+
 // Check if role has a permission
 $role->hasPermission('edit-posts');
 
 // Give permission to a role
 $role->givePermission('edit-posts');
 
+// Assign multiple permissions
+$role->givePermissions(['edit-posts', 'delete-posts']);
+
+// Check if role has any permission
+$role->hasAnyPermission(['edit-posts', 'delete-posts']);
+
 // Sync all permissions for a role (removes all existing permissions and adds the given ones)
 $role->syncPermissions(['edit-posts', 'delete-posts']);
 
 // Remove a specific permission from a role
-$role->removePermission('edit-posts');  // Returns boolean
+$role->removePermission('edit-posts');
 
 // Remove multiple permissions from a role
 $removedCount = $role->removePermissions(['edit-posts', 'delete-posts']);  // Returns number of permissions removed
 
 // Remove all permissions from a role
 $removedCount = $role->removeAllPermissions();  // Returns number of permissions removed
-```
-
-##### Example Usage:
-
-```php
-use Abdulbaset\RolesPermissions\Models\Role;
-
-// Get a role
-$adminRole = Role::where('slug', 'admin')->first();
-
-// Add a permission
-$adminRole->givePermission('delete-users');
-
-// Check if role has permission
-if ($adminRole->hasPermission('delete-users')) {
-    // Role has the permission
-}
-
-// Remove a permission
-$adminRole->removePermission('delete-users');
-
-// Remove multiple permissions
-$adminRole->removePermissions(['edit-posts', 'delete-posts']);
-
-// Remove all permissions
-$removedCount = $adminRole->removeAllPermissions();
 ```
 
 ## Permissions Methods
@@ -679,10 +662,6 @@ public function store(Request $request)
 @hasanyrole(['admin', 'editor'])
     // This content will be shown to users with either 'admin' or 'editor' role
 @endhasanyrole
-
-@hasallroles(['admin', 'editor'])
-    // This content will be shown only to users with both 'admin' and 'editor' roles
-@endhasallroles
 
 @haspermission('edit-posts')
     // This content will be shown only to users with the 'edit-posts' permission
