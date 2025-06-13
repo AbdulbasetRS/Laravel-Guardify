@@ -192,19 +192,64 @@ Route::get('/dashboard', function () {
 
 You can also apply middleware in your controller's constructor:
 
+1. This syntax is commonly used in Laravel 10 and earlier versions.
+
 ```php
-public function __construct()
+class YourController extends Controller
 {
-    $this->middleware('role:admin');
+    public function __construct()
+    {
+        // Authentication middleware
+        $this->middleware('auth');
+   
+        // Role middleware with specific methods
+        $this->middleware('role:admin')->only('index');
     
-    // Or for multiple roles
-    $this->middleware('role:admin|editor');
-    
-    // Using permission middleware
-    $this->middleware('permission:edit-posts');
-    
-    // Using role or permission middleware
-    $this->middleware('role_or_permission:admin|edit-posts');
+        // Or for multiple roles
+        $this->middleware('role:admin|editor')->only('index');
+        
+        // Using permission middleware
+        $this->middleware('permission:edit-posts')->only('store');
+        
+        // Or for multiple permissions
+        $this->middleware('permission:edit-posts|store-posts')->only('store');
+
+        // Using role or permission middleware
+        $this->middleware('role_or_permission:admin|edit-posts')->only('store');
+    }
+}
+```
+
+2. This approach is introduced in Laravel 11 and continues in Laravel 12, using the new HasMiddleware interface for cleaner and more structured middleware definitions.
+
+```php
+use Illuminate\Routing\Controllers\Middleware;
+use Illuminate\Routing\Controllers\HasMiddleware;
+
+class YourController implements HasMiddleware
+{
+    public static function middleware(): array
+    {
+        return [
+            // Authentication middleware
+            'auth',
+            
+            // Role middleware with specific methods
+            new Middleware('role:admin', ['index', 'show']),
+        
+            // Multiple roles with OR condition
+            new Middleware('role:admin|editor', ['create', 'store']),
+
+            // Permission middleware with specific methods
+            new Middleware('permission:create', ['store']),
+
+            // Multiple permissions with OR condition
+            new Middleware('permission:create|update|delete', ['destroy']),
+            
+            // Role or permission middleware with multiple methods
+            new Middleware('role_or_permission:admin|edit-posts', ['edit', 'update']),
+        ];
+    }
 }
 ```
 
